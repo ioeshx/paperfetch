@@ -1,0 +1,23 @@
+python src/cli.py \
+	--source openreview \
+	--query "concept erasure" \
+	--subject cs.AI \
+	--from-date 2026-05-01 \
+	--to-date 2026-05-17 \
+	--limit 30 \
+	--output-dir downloads/concept_erasure \
+	--markdown-path outputs/concept_erasure.md \
+	--json-path outputs/concept_erasure.json \
+	--failures-path outputs/concept_erasure_failures.json
+
+python src/cli.py \
+	--source arixv \
+	--query "concept erasure" \
+	--subject cs.AI \
+	--from-date 2026-05-01 \
+	--to-date 2026-05-17 \
+	--limit 30 \
+	--output-dir downloads/concept_erasure \
+	--markdown-path outputs/concept_erasure.md \
+	--json-path outputs/concept_erasure.json \
+	--failures-path outputs/concept_erasure_failures.json
