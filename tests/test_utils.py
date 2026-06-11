@@ -1,8 +1,11 @@
+from datetime import date
 from pathlib import Path
 
 import pytest
 
 import downloader
+from models import QuerySpec
+from sources.arxiv import build_search_query
 from utils import paper_filename, render_markdown_paper_list, slugify_filename
 
 
@@ -47,3 +50,19 @@ def test_download_file_retries(monkeypatch, tmp_path: Path):
 
     assert output.read_bytes() == b"ok"
     assert calls["count"] == 3
+
+
+def test_arxiv_search_query_quotes_phrase_and_filters_dates():
+    query = build_search_query(
+        QuerySpec(
+            query="concept erasure",
+            subject="cs.AI",
+            from_date=date(2026, 5, 1),
+            to_date=date(2026, 5, 17),
+        )
+    )
+
+    assert 'all:"concept erasure"' in query
+    assert 'cat:cs.AI' in query
+    assert 'submittedDate:[' in query
+

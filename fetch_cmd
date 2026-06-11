@@ -11,7 +11,7 @@ python src/cli.py \
 	--failures-path outputs/concept_erasure_failures.json
 
 python src/cli.py \
-	--source arixv \
+	--source arxiv \
 	--query "concept erasure" \
 	--subject cs.AI \
 	--from-date 2026-05-01 \

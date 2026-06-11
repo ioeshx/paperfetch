@@ -2,6 +2,15 @@
 
 Fetch papers from arXiv and OpenReview, export metadata, download PDFs when available, and generate a Markdown paper list.
 
+## ref
+https://info.arxiv.org/help/api/user-manual.html
+
+https://docs.openreview.net/reference/api-v2
+
+https://github.com/openreview/openreview-py
+
+https://zhuanlan.zhihu.com/p/679538991
+
 ## Usage
 
 ### 1. Run directly with Python

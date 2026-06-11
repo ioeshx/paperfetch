@@ -15,14 +15,16 @@ class QuerySpec:
     from_date: Optional[date] = None
     to_date: Optional[date] = None
     limit: int = 20
-    sort_by: str = "submittedDate"
-    sort_order: str = "descending"
+    sort_by: str = "submittedDate"  # sortBy: value in [relevance, lastUpdatedDate, submittedDate]
+    sort_order: str = "descending"  # sortOrder value in [ascending, descending]
     download: bool = True
     output_dir: str = "downloads"
     markdown_path: str = "papers.md"
     json_path: str = "papers.json"
 
     failures_path: str = "download_failures.json"
+
+# 
 
 @dataclass(slots=True)
 class PaperRecord:

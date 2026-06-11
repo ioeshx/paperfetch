@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import time
+from datetime import date, datetime, time as dt_time, timezone
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote_plus
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
@@ -10,16 +12,21 @@ from models import PaperRecord, QuerySpec
 from utils import ensure_directory, paper_filename
 
 
-ARXIV_API_URL = "https://export.arxiv.org/api/query"
+ARXIV_API_URL = "http://export.arxiv.org/api/query"
+ARXIV_REQUEST_TIMEOUT = 30
+ARXIV_MAX_RETRIES = 3
+ARXIV_RETRY_DELAY_SECONDS = 3.0
 ATOM_NS = {"atom": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
 
 
 def build_search_query(spec: QuerySpec) -> str:
     clauses: list[str] = []
     if spec.query:
-        clauses.append(f"all:{spec.query}")
+        clauses.append(f'all:"{_escape_query_phrase(spec.query)}"+AND+cat:{spec.source}')
     if spec.subject:
         clauses.append(f"cat:{spec.subject}")
+    if spec.from_date or spec.to_date:
+        clauses.append(f"submittedDate:{_format_submitted_date_range(spec.from_date, spec.to_date)}")
     return " AND ".join(clauses) if clauses else "all:electron"
 
 
@@ -30,9 +37,8 @@ def fetch_arxiv_papers(spec: QuerySpec) -> list[PaperRecord]:
         f"&start=0&max_results={spec.limit}"
         f"&sortBy={quote_plus(spec.sort_by)}&sortOrder={quote_plus(spec.sort_order)}"
     )
-    request = Request(url, headers={"User-Agent": BROWSER_USER_AGENT})
-    with urlopen(request, timeout=30) as response:
-        xml_bytes = response.read()
+    print("url:", url)
+    xml_bytes = _fetch_arxiv_feed(url)
 
     root = ET.fromstring(xml_bytes)
     papers: list[PaperRecord] = []
@@ -78,6 +84,28 @@ def download_arxiv_pdf(paper: PaperRecord, output_dir: str) -> str:
     return str(destination)
 
 
+def _fetch_arxiv_feed(url: str) -> bytes:
+    request = Request(url, headers={"User-Agent": BROWSER_USER_AGENT, "Accept": "application/atom+xml"})
+    last_error: Exception | None = None
+
+    for attempt in range(1, ARXIV_MAX_RETRIES + 1):
+        try:
+            print(f"Fetching arXiv feed (attempt {attempt}/{ARXIV_MAX_RETRIES})...")
+            with urlopen(request, timeout=ARXIV_REQUEST_TIMEOUT) as response:
+                return response.read()
+        except HTTPError as exc:
+            last_error = exc
+            if exc.code not in (429, 500, 502, 503, 504):
+                break
+        except (TimeoutError, URLError) as exc:
+            last_error = exc
+
+        if attempt < ARXIV_MAX_RETRIES:
+            time.sleep(ARXIV_RETRY_DELAY_SECONDS * attempt)
+
+    raise RuntimeError(f"arXiv API request failed after {ARXIV_MAX_RETRIES} attempts: {last_error}") from last_error
+
+
 def _text(entry: ET.Element, path: str) -> str:
     value = entry.findtext(path, default="", namespaces=ATOM_NS)
     return value or ""
@@ -95,3 +123,15 @@ def _find_pdf_url(entry: ET.Element) -> str:
         if link.attrib.get("title") == "pdf" or link.attrib.get("type") == "application/pdf":
             return link.attrib.get("href", "")
     return ""
+
+
+def _format_submitted_date_range(from_date: date | None, to_date: date | None) -> str:
+    start_date = from_date or date(1970, 1, 1)
+    end_date = to_date or date.today()
+    start_dt = datetime.combine(start_date, dt_time.min, tzinfo=timezone.utc)
+    end_dt = datetime.combine(end_date, dt_time(23, 59), tzinfo=timezone.utc)
+    return f"[{start_dt:%Y%m%d%H%M} TO {end_dt:%Y%m%d%H%M}]"
+
+
+def _escape_query_phrase(value: str) -> str:
+    return value.replace('"', r'\"').strip()
