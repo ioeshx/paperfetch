@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from typing import Any
 
@@ -10,6 +11,8 @@ from utils import ensure_directory, paper_filename
 
 OPENREVIEW_API_BASE_URL = "https://api2.openreview.net"
 OPENREVIEW_BASE_URL = "https://api.openreview.net"
+OPENREVIEW_USERNAME_ENV = "OPENREVIEW_USERNAME"
+OPENREVIEW_PASSWORD_ENV = "OPENREVIEW_PASSWORD"
 
 
 def fetch_openreview_papers(spec: QuerySpec) -> list[PaperRecord]:
@@ -73,7 +76,29 @@ def _get_client():
             "openreview-py is required for OpenReview fetching. Install it with `python -m pip install openreview-py` or `python -m pip install -e .`."
         ) from exc
 
-    return openreview.api.OpenReviewClient(baseurl=OPENREVIEW_API_BASE_URL)
+    username, password = _get_openreview_credentials()
+
+    # api v2
+    return openreview.api.OpenReviewClient(
+        baseurl=OPENREVIEW_API_BASE_URL,
+        username=username,
+        password=password,
+    )
+
+
+def _get_openreview_credentials() -> tuple[str | None, str | None]:
+    username = (os.getenv(OPENREVIEW_USERNAME_ENV) or "").strip()
+    password = (os.getenv(OPENREVIEW_PASSWORD_ENV) or "").strip()
+
+    if bool(username) != bool(password):
+        raise RuntimeError(
+            f"Please set both {OPENREVIEW_USERNAME_ENV} and {OPENREVIEW_PASSWORD_ENV}, or set neither for anonymous access."
+        )
+
+    if not username:
+        return None, None
+
+    return username, password
 
 
 def _get_notes(client: Any, spec: QuerySpec) -> list[Any]:
@@ -82,7 +107,13 @@ def _get_notes(client: Any, spec: QuerySpec) -> list[Any]:
     if spec.venue:
         return client.get_all_notes(invitation=f"{spec.venue}/-/Submission")
     if spec.query:
-        return client.search_notes(spec.query, content="all", limit=max(1, spec.limit))
+        return client.search_notes(spec.query, 
+                                   content="all", 
+                                   limit=max(1, spec.limit),
+                                #    content="", # Specifies whether to look in all the content, authors, or keywords. Valid inputs: ‘all’, ‘authors’, ‘keywords’
+                                #    group="all", # Specifies under which Group to look. E.g. ‘all’, ‘ICLR’, ‘UAI’, etc.
+                                #    source="" # Whether to look in papers, replies or all
+                                   )   
     return client.get_all_notes(limit=max(1, spec.limit))
 
 

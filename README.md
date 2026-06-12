@@ -75,3 +75,36 @@ By default this command writes:
 - Download failures do not stop the whole batch; they are recorded and written to the failures file.
 - If a paper has no PDF URL, it is still included in the metadata and Markdown list.
 - OpenReview fetching uses the official `openreview-py` client.
+
+### 4. OpenReview credentials (optional)
+
+Do not hardcode credentials in source code. Configure them through environment variables instead:
+
+- `OPENREVIEW_USERNAME`
+- `OPENREVIEW_PASSWORD`
+
+Windows PowerShell:
+
+```powershell
+$env:OPENREVIEW_USERNAME="your_email@example.com"
+$env:OPENREVIEW_PASSWORD="your_password"
+python src/cli.py --source openreview --query "concept erasure"
+```
+
+Windows CMD:
+
+```cmd
+set OPENREVIEW_USERNAME=your_email@example.com
+set OPENREVIEW_PASSWORD=your_password
+python src/cli.py --source openreview --query "concept erasure"
+```
+
+Bash:
+
+```bash
+export OPENREVIEW_USERNAME="your_email@example.com"
+export OPENREVIEW_PASSWORD="your_password"
+python src/cli.py --source openreview --query "concept erasure"
+```
+
+If both variables are omitted, paperfetch uses anonymous OpenReview access.
