@@ -2,7 +2,14 @@
 
 Fetch papers from arXiv and OpenReview, export metadata, download PDFs when available, and generate a Markdown paper list.
 
+## TODO
+- [x] arxiv (rate limit会导致429失败，过段时间重试)
+- [ ] openreview （）
+
+
 ## ref
+https://info.arxiv.org/help/api/basics.html
+
 https://info.arxiv.org/help/api/user-manual.html
 
 https://docs.openreview.net/reference/api-v2
